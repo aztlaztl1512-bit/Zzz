@@ -11,7 +11,7 @@
         .quiz-container { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 600px; text-align: center; position: relative; }
         #timer-bar { position: absolute; top: 0; right: 0; height: 6px; background: var(--accent); width: 100%; transition: width 1s linear; border-radius: 15px 15px 0 0; }
         .option-btn { display: block; width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 8px; background: none; cursor: pointer; transition: 0.3s; font-size: 1.1rem; font-weight: 500; }
-        .correct-flash { background-color: #e8f5e9 !important; border-color: var(--correct) !important; color: var(--correct); }
+        .correct-flash { background-color: #e8f5e9 !important; border-color: var(--correct) !important; color: var(--correct); border-width: 3px !important; }
         .wrong-flash { background-color: #ffeeb2 !important; border-color: var(--wrong) !important; color: var(--wrong); }
         .hidden { display: none; }
         input[type="text"] { width: 85%; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 2px solid #ddd; font-size: 1rem; }
@@ -51,11 +51,12 @@
 </div>
 
 <script>
-    const LOCK_KEY = "qudrat_final_lock_v2";
+    const LOCK_KEY = "qudrat_final_lock_v3";
     let timeLeft = 40;
     let timerInterval;
     let currentQ = 0;
     let score = 0;
+    const TRANSITION_DELAY = 5500; // التأخير الجديد: 5 ثواني ونصف
 
     const quizData = [
         { type: "التناظر اللفظي", q: "قوي : متين", options: ["إيمان : جنة", "نتيجة : سبب", "حب : امتلاك", "زهيد : رخيص"], correct: 3 },
@@ -78,7 +79,6 @@
     function startQuiz() {
         if (!document.getElementById('student-name').value) { alert("لطفاً، ادخل اسمك أولاً"); return; }
         if (localStorage.getItem(LOCK_KEY)) { alert("عذراً، تم تقديم الاختبار مسبقاً من هذا الجهاز."); return; }
-
         document.getElementById('login-section').classList.add('hidden');
         document.getElementById('quiz-section').classList.remove('hidden');
         showQuestion();
@@ -88,11 +88,9 @@
         const q = quizData[currentQ];
         document.getElementById('question-title').innerText = `س ${currentQ + 1} في ( ${q.type} )`;
         document.getElementById('question-text').innerText = q.q;
-        
         const container = document.getElementById('options-container');
         container.innerHTML = '';
         document.getElementById('feedback').innerText = '';
-        
         q.options.forEach((opt, index) => {
             const btn = document.createElement('button');
             btn.className = 'option-btn';
@@ -101,7 +99,6 @@
             btn.onclick = () => checkAnswer(index);
             container.appendChild(btn);
         });
-
         startTimer();
     }
 
@@ -114,7 +111,7 @@
             updateTimerUI();
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
-                showCorrectAndNext(false);
+                showCorrectAndNext(true);
             }
         }, 1000);
     }
@@ -126,32 +123,29 @@
 
     function checkAnswer(index) {
         clearInterval(timerInterval);
+        disableOptions();
         const q = quizData[currentQ];
-        const isCorrect = (index === q.correct);
-        
-        if (isCorrect) {
+        if (index === q.correct) {
             score++;
             document.getElementById(`opt-${index}`).classList.add('correct-flash');
             document.getElementById('feedback').innerHTML = "<span style='color:green'>إجابة صحيحة! أحسنت يا بطل 🌟</span>";
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         } else {
             document.getElementById(`opt-${index}`).classList.add('wrong-flash');
-            document.getElementById('feedback').innerHTML = "<span style='color:red'>محاولة جيدة، يواصل.. 💪</span>";
-            // إظهار الصواب
             document.getElementById(`opt-${q.correct}`).classList.add('correct-flash');
+            document.getElementById('feedback').innerHTML = "<span style='color:red'>محاولة جيدة، يواصل.. 💪 (الصواب بالأخضر)</span>";
         }
-        disableOptions();
-        setTimeout(nextQuestion, 2500);
+        setTimeout(nextQuestion, TRANSITION_DELAY);
     }
 
     function showCorrectAndNext(isTimedOut) {
         const q = quizData[currentQ];
-        if (!isTimedOut) {
+        if (isTimedOut) {
             document.getElementById('feedback').innerHTML = "<span style='color:orange'>انتهى الوقت! الصواب موضح بالأخضر.. واصل 💪</span>";
             document.getElementById(`opt-${q.correct}`).classList.add('correct-flash');
         }
         disableOptions();
-        setTimeout(nextQuestion, 2500);
+        setTimeout(nextQuestion, TRANSITION_DELAY);
     }
 
     function disableOptions() {
